@@ -20,7 +20,7 @@ help:
 # Local development targets
 # -------------------------------
 build:
-	$(GO) build -o $(APP_NAME) main.go && chmod +x $(APP_NAME)
+	$(GO) build -o $(APP_NAME) . && chmod +x $(APP_NAME)
 
 run: build
 	./$(APP_NAME)

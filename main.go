@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"log/slog"
 	"os"
 	"passkey-service/config"
@@ -21,4 +22,18 @@ func main() {
 		return
 	}
 	logger.Info("Database initialized!")
+
+	InitWebAuthn()
+	r := SetupRouter()
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Printf("Starting server on port %s...", port)
+	err = r.Run(":" + port)
+	if err != nil {
+		return
+	}
 }

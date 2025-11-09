@@ -1,0 +1,7 @@
+POST http://localhost:8080/api/register/begin
+Content-Type: application/x-www-form-urlencoded
+
+username = johndoe &
+displayName = John Doe
+
+###
