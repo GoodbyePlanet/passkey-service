@@ -54,12 +54,12 @@ make up
 
 #### Makefile Commands
 ```
-make build	Compile Go binary locally
-make run	Run the app locally
-make docker-build	Build Docker image
-make up	Start API + DB containers in background
-make db-up	Start only PostgreSQL container
-make logs	Tail API logs live
-make db	Open PostgreSQL shell inside container
-make clean	Stop containers, remove binary and volumes
+make build	        - Compile Go binary locally
+make run	        - Run the app locally
+make docker-build	- Build Docker image
+make up	            - Start API + DB containers in background
+make db-up	        - Start only PostgreSQL container
+make logs	        - Tail API logs live
+make db	            - Open PostgreSQL shell inside container
+make clean	        - Stop containers, remove binary and volumes
 ```
