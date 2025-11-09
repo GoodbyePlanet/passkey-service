@@ -4,25 +4,22 @@ A simple Go + Gin service implementing passkey (WebAuthn) registration and authe
 
 This service exposes the following REST API endpoints:
 
+```
 POST /api/register/begin – Start user registration
-
 POST /api/register/finish – Complete user registration
-
 POST /api/authenticate/begin – Start user authentication
-
 POST /api/authenticate/finish – Complete user authentication
+```
 
 #### Features
 
+```
 User registration with passkeys (WebAuthn)
-
 User authentication with registered passkeys
-
 PostgreSQL persistence for users and credentials
-
 Dockerized service and database for easy setup
-
 Makefile for local development and Docker commands
+```
 
 #### Setup
 
@@ -31,7 +28,6 @@ Copy the example environment file:
 ```shell
 cp .env.example .env.development
 ```
-
 
 Edit .env.development with your local database settings (host, user, password, db name, port).
 
