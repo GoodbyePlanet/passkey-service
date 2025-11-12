@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+    async function register() {
+        const begin = await fetch("http://localhost:8080/api/register/begin", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({username: "doe", displayName: "doe"})
+        }).then(r => r.json());
+
+        console.log("Begin:", begin);
+        const publicKey = begin.publicKey;
+        publicKey.challenge = Uint8Array.from(atob(publicKey.challenge), c => c.charCodeAt(0));
+        publicKey.user.id = Uint8Array.from(atob(publicKey.user.id), c => c.charCodeAt(0));
+        const cred = await navigator.credentials.create({publicKey});
+        console.log("Credential:", cred);
+
+        // Convert ArrayBuffers to base64url
+        function bufferToBase64url(buffer) {
+            return btoa(String.fromCharCode(...new Uint8Array(buffer)))
+                .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+        }
+
+        const attestationResponse = cred.response;
+        const data = {
+            id: cred.id,
+            rawId: bufferToBase64url(cred.rawId),
+            type: cred.type,
+            response: {
+                attestationObject: bufferToBase64url(attestationResponse.attestationObject),
+                clientDataJSON: bufferToBase64url(attestationResponse.clientDataJSON)
+            }
+        };
+
+        console.log("Send this JSON to /api/register/finish:");
+        console.log(JSON.stringify({username: "doe", credential: data}, null, 2));
+    }
+
+    register();
+</script>
+</body>
+</html>
+

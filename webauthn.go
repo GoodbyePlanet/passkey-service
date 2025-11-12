@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"os"
@@ -22,7 +23,7 @@ func InitWebAuthn() {
 	webAuthn, err = webauthn.New(&webauthn.Config{
 		RPDisplayName: "Passkey Service",
 		RPID:          os.Getenv("RP_ID"),
-		RPOrigins:     []string{os.Getenv("RP_ORIGIN")},
+		RPOrigins:     []string{"http://localhost:63342", "http://localhost:8080"},
 	})
 	if err != nil {
 		panic("failed to init webauthn: " + err.Error())
@@ -31,10 +32,17 @@ func InitWebAuthn() {
 
 // BeginRegistration POST /api/register/begin
 func BeginRegistration(c *gin.Context) {
-	username := c.PostForm("username")
-	displayName := c.PostForm("displayName")
-
-	logger.Info("register begin ", username, displayName)
+	var req struct {
+		Username    string `json:"username"`
+		DisplayName string `json:"displayName"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
+		return
+	}
+	username := req.Username
+	displayName := req.DisplayName
+	logger.Info("register begin for user ", username, displayName)
 
 	user := models.User{Username: username, DisplayName: displayName}
 	config.DB.FirstOrCreate(&user, models.User{Username: username})
@@ -44,18 +52,21 @@ func BeginRegistration(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	sessionStore[username] = session
+	sessionJSON, _ := json.Marshal(session)
+	config.DB.Save(&models.WebAuthnSession{
+		Username:   username,
+		SessionRaw: sessionJSON,
+	})
 	c.JSON(http.StatusOK, options)
 }
 
 // FinishRegistration POST /api/register/finish
 func FinishRegistration(c *gin.Context) {
-	username := c.PostForm("username")
+	username := c.Query("username")
 	user := models.User{}
 	config.DB.Where("username = ?", username).First(&user)
 
-	session := sessionStore[username]
-	credential, err := webAuthn.FinishRegistration(&user, *session, c.Request)
+	credential, err := webAuthn.FinishRegistration(&user, getSession(c, username), c.Request)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -67,6 +78,7 @@ func FinishRegistration(c *gin.Context) {
 		PublicKey: credential.PublicKey,
 		SignCount: credential.Authenticator.SignCount,
 	})
+	config.DB.Delete(&models.WebAuthnSession{}, "username = ?", username)
 
 	c.JSON(http.StatusOK, gin.H{"status": "registered"})
 }
@@ -104,4 +116,18 @@ func FinishLogin(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "authenticated"})
+}
+
+func getSession(c *gin.Context, username string) webauthn.SessionData {
+	var was models.WebAuthnSession
+	if err := config.DB.Where("username = ?", username).First(&was).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "session not found"})
+	}
+
+	var sd webauthn.SessionData
+	if err := json.Unmarshal(was.SessionRaw, &sd); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid session data"})
+	}
+
+	return sd
 }

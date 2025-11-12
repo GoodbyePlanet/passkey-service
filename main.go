@@ -17,7 +17,7 @@ func main() {
 	}
 
 	config.ConnectDatabase()
-	err := config.DB.AutoMigrate(&models.User{}, &models.Credential{})
+	err := config.DB.AutoMigrate(&models.User{}, &models.Credential{}, &models.WebAuthnSession{})
 	if err != nil {
 		return
 	}
