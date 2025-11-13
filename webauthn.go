@@ -14,6 +14,11 @@ import (
 
 var webAuthn *webauthn.WebAuthn
 
+type RegistrationBeginRequest struct {
+	Username    string `json:"username"`
+	DisplayName string `json:"displayName"`
+}
+
 // TODO: Store sessions in redis or in postgres
 var sessionStore = map[string]*webauthn.SessionData{}
 var logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
@@ -32,10 +37,7 @@ func InitWebAuthn() {
 
 // BeginRegistration POST /api/register/begin
 func BeginRegistration(c *gin.Context) {
-	var req struct {
-		Username    string `json:"username"`
-		DisplayName string `json:"displayName"`
-	}
+	var req RegistrationBeginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
 		return
@@ -63,6 +65,10 @@ func BeginRegistration(c *gin.Context) {
 // FinishRegistration POST /api/register/finish
 func FinishRegistration(c *gin.Context) {
 	username := c.Query("username")
+	if username == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing username"})
+		return
+	}
 	user := models.User{}
 	config.DB.Where("username = ?", username).First(&user)
 

@@ -12,11 +12,11 @@ POST http://localhost:8080/api/register/finish?username=doe
 Content-Type: application/json
 
 {
-  "id": "tJQilVIxmWzLZ_5o1944Ul90aFIpqCdb8vE",
-  "rawId": "tJQilVIxmWzLZ_5o1944Ul90aFIpqCdb8vE",
+  "id": "rNRzRHYF43JDm81--OSWopOL0OlA4-8DjUhvJTiBX_Zbma4OYNPYnQRTecNLeOoxh9bV4OXgBGBYpQI",
+  "rawId": "rNRzRHYF43JDm81--OSWopOL0OlA4-8DjUhvJTiBX_Zbma4OYNPYnQRTecNLeOoxh9bV4OXgBGBYpQI",
   "type": "public-key",
   "response": {
-    "attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVieSZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2NdAAAAALraVWanqkAfvZZFYZpVEg0AGrSUIpVSMZlsy2f-aNfeOFJfdGhSKagnW_LxpQECAyYgASFYIE2YrvyMvZ0WxM9Cvhroh5pkO2kgxAm2grcgXlGUoNYeIlggheZcFg-tjVWqFVoeaGtLXKL3KoNW-J4JBmnbHEIwhLc",
-    "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiRTJMeTRwdXNpRUFuVzc5eXhwbm5kRGQxeGREYVJNc3RmNm52N3NkUEV3YyIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6NjMzNDIiLCJjcm9zc09yaWdpbiI6ZmFsc2V9"
+    "attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVi_SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2NdAAAAALraVWanqkAfvZZFYZpVEg0AO6zUc0R2BeNyQ5vNfvjklqKTi9DpQOPvA41IbyU4gV_2W5muDmDT2J0EU3nDS3jqMYfW1eDl4ARgWKUCpQECAyYgASFYIK9IpWWmz-P0bhidPJWr0bds5TTiwAzIozOiS3yIRkj0IlggLTk1aIVGgCiDn_7PSKNHOM2KWybfcD8Qd3WA0xSnnUI",
+    "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiTDFGWk51Y0hGTkI3eUQ4clVNNmNUQUp4MkViVTFkVWtYcjltaTBiRXpXUSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6NjMzNDIiLCJjcm9zc09yaWdpbiI6ZmFsc2V9"
   }
 }

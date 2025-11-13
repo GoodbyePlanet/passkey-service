@@ -63,3 +63,10 @@ make logs	        - Tail API logs live
 make db	            - Open PostgreSQL shell inside container
 make clean	        - Stop containers, remove binary and volumes
 ```
+
+#### Testing Registration flow
+```
+Open registration.html in your browser.
+Copy data printed in the console, and paste it for /register/finish endpoint.
+See webauthn.http file.
+```
