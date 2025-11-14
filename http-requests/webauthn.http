@@ -1,4 +1,4 @@
-POST http://localhost:8080/api/register/begin
+POST localhost:8080/api/register/begin
 Content-Type: application/json
 
 {
@@ -8,15 +8,43 @@ Content-Type: application/json
 
 ###
 
-POST http://localhost:8080/api/register/finish?username=doe
+POST localhost:8080/api/register/finish?username=doe
 Content-Type: application/json
 
 {
-  "id": "rNRzRHYF43JDm81--OSWopOL0OlA4-8DjUhvJTiBX_Zbma4OYNPYnQRTecNLeOoxh9bV4OXgBGBYpQI",
-  "rawId": "rNRzRHYF43JDm81--OSWopOL0OlA4-8DjUhvJTiBX_Zbma4OYNPYnQRTecNLeOoxh9bV4OXgBGBYpQI",
+  "id": "0uIVEy_sww0-sKoMnu_8pOYt7QZ2YEb4blo7yuV36AbEM6hJZsq_j-cVloW_qaQUnPi0mgIfEgk68NNq",
+  "rawId": "0uIVEy_sww0-sKoMnu_8pOYt7QZ2YEb4blo7yuV36AbEM6hJZsq_j-cVloW_qaQUnPi0mgIfEgk68NNq",
   "type": "public-key",
   "response": {
-    "attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVi_SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2NdAAAAALraVWanqkAfvZZFYZpVEg0AO6zUc0R2BeNyQ5vNfvjklqKTi9DpQOPvA41IbyU4gV_2W5muDmDT2J0EU3nDS3jqMYfW1eDl4ARgWKUCpQECAyYgASFYIK9IpWWmz-P0bhidPJWr0bds5TTiwAzIozOiS3yIRkj0IlggLTk1aIVGgCiDn_7PSKNHOM2KWybfcD8Qd3WA0xSnnUI",
-    "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiTDFGWk51Y0hGTkI3eUQ4clVNNmNUQUp4MkViVTFkVWtYcjltaTBiRXpXUSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6NjMzNDIiLCJjcm9zc09yaWdpbiI6ZmFsc2V9"
+    "attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVjASZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2NdAAAAALraVWanqkAfvZZFYZpVEg0APNLiFRMv7MMNPrCqDJ7v_KTmLe0GdmBG-G5aO8rld-gGxDOoSWbKv4_nFZaFv6mkFJz4tJoCHxIJOvDTaqUBAgMmIAEhWCDA5m_-takuyIeWH2W5v69j3bp0Ujj8nBQv59_MpkJ5XiJYIHxewQkLgFBdDYLTSmab7auyqYenZ7SeQy-icDrgUxjY",
+    "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiTDA3Ym5YT0tIdkp3SHFHbnhNYnR3dEF3dXJ0cVVXSkh1Z29BdXhPbkl2RSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6NjMzNDIiLCJjcm9zc09yaWdpbiI6ZmFsc2V9"
   }
 }
+
+###
+
+POST localhost:8080/api/authenticate/begin
+Content-Type: application/json
+
+{
+  "username": "doe"
+}
+
+###
+
+POST localhost:8080/api/authenticate/finish?username=doe
+Content-Type: application/json
+
+{
+  "id": "r4FMmWCZF2IYn8_xjv9mqVQRP3oiBGZ1jGpqnTPItFLTeZzWh9ET_DqcjrmCKjcGkyFJ2usIdalRGy9Onw",
+  "rawId": "r4FMmWCZF2IYn8_xjv9mqVQRP3oiBGZ1jGpqnTPItFLTeZzWh9ET_DqcjrmCKjcGkyFJ2usIdalRGy9Onw",
+  "type": "public-key",
+  "response": {
+    "authenticatorData": "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MdAAAAAA",
+    "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiSVBiTjNqSmtLZXFOaUpPZFZ4VXg2MWpfSzhUUlE4aDFFTUoxbXNYeHEyMCIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6NjMzNDIiLCJjcm9zc09yaWdpbiI6ZmFsc2V9",
+    "signature": "MEYCIQDbkTDweR2uF4Jx_p7fJO3uYJ0hu68IANSNCMhfS3HjggIhANtOQn88O9ifLxnlho-136MopTNEvMCfqtTKhkCWX2cQ",
+    "userHandle": "ZG9l"
+  }
+}
+
+###

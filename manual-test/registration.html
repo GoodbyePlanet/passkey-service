@@ -35,6 +35,14 @@
 
         console.log("Send this JSON to /api/register/finish:");
         console.log(JSON.stringify(data, null, 2));
+
+        const finish = await fetch("http://localhost:8080/api/register/finish?username=doe", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(data)
+        }).then(r => r.json());
+
+        console.log("Finish:", finish);
     }
 
     register();

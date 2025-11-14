@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+    async function authenticate() {
+        const begin = await fetch("http://localhost:8080/api/authenticate/begin", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({username: "doe"})
+        }).then(r => r.json());
+        console.log("Begin:", begin);
+
+        const publicKey = begin.publicKey;
+
+        publicKey.challenge = Uint8Array.from(atob(publicKey.challenge.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
+
+        if (publicKey.allowCredentials) {
+            publicKey.allowCredentials = publicKey.allowCredentials.map(cred => ({
+                ...cred,
+                id: Uint8Array.from(atob(cred.id.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0))
+            }));
+        }
+
+        const assertion = await navigator.credentials.get({publicKey});
+        console.log("Assertion:", assertion);
+        const buf = assertion.response.authenticatorData;
+        const bytes = new Uint8Array(buf);
+
+        // Flags are at byte 32
+        const flags = bytes[32];
+
+        console.log("Flags byte:", flags.toString(2).padStart(8, "0"));
+        console.log("Raw flags:", flags);
+
+        function bufferToBase64url(buffer) {
+            return btoa(String.fromCharCode(...new Uint8Array(buffer)))
+                .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+        }
+
+        const data = {
+            id: assertion.id,
+            rawId: bufferToBase64url(assertion.rawId),
+            type: assertion.type,
+            response: {
+                authenticatorData: bufferToBase64url(assertion.response.authenticatorData),
+                clientDataJSON: bufferToBase64url(assertion.response.clientDataJSON),
+                signature: bufferToBase64url(assertion.response.signature),
+                userHandle: assertion.response.userHandle ? bufferToBase64url(assertion.response.userHandle) : null
+            }
+        };
+
+        console.log("Send this JSON to /api/authenticate/finish:");
+        console.log(JSON.stringify(data, null, 2));
+
+        const finish = await fetch("http://localhost:8080/api/authenticate/finish?username=doe", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(data)
+        }).then(r => r.json());
+
+        console.log("Finish:", finish);
+    }
+
+    authenticate();
+</script>
+</body>
+</html>

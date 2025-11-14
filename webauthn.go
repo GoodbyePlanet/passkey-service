@@ -19,8 +19,10 @@ type RegistrationBeginRequest struct {
 	DisplayName string `json:"displayName"`
 }
 
-// TODO: Store sessions in redis or in postgres
-var sessionStore = map[string]*webauthn.SessionData{}
+type LoginBeginRequest struct {
+	Username string `json:"username"`
+}
+
 var logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 func InitWebAuthn() {
@@ -72,18 +74,41 @@ func FinishRegistration(c *gin.Context) {
 	user := models.User{}
 	config.DB.Where("username = ?", username).First(&user)
 
-	credential, err := webAuthn.FinishRegistration(&user, getSession(c, username), c.Request)
+	cred, err := webAuthn.FinishRegistration(&user, getSession(c, username), c.Request)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	config.DB.Create(&models.Credential{
-		UserID:    user.ID,
-		ID:        credential.ID,
-		PublicKey: credential.PublicKey,
-		SignCount: credential.Authenticator.SignCount,
-	})
+	dbCred := models.Credential{
+		UserID:          user.ID,
+		ID:              cred.ID,
+		PublicKey:       cred.PublicKey,
+		AttestationType: cred.AttestationType,
+		Transport:       models.TransportToStrings(cred.Transport),
+
+		UserPresent:    cred.Flags.UserPresent,
+		UserVerified:   cred.Flags.UserVerified,
+		BackupEligible: cred.Flags.BackupEligible,
+		BackupState:    cred.Flags.BackupState,
+
+		AAGUID:       cred.Authenticator.AAGUID,
+		SignCount:    cred.Authenticator.SignCount,
+		CloneWarning: cred.Authenticator.CloneWarning,
+		Attachment:   string(cred.Authenticator.Attachment),
+
+		ClientDataJSON:     cred.Attestation.ClientDataJSON,
+		ClientDataHash:     cred.Attestation.ClientDataHash,
+		AuthenticatorData:  cred.Attestation.AuthenticatorData,
+		Object:             cred.Attestation.Object,
+		PublicKeyAlgorithm: cred.Attestation.PublicKeyAlgorithm,
+	}
+
+	if err := config.DB.Create(&dbCred).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	config.DB.Delete(&models.WebAuthnSession{}, "username = ?", username)
 
 	c.JSON(http.StatusOK, gin.H{"status": "registered"})
@@ -91,7 +116,17 @@ func FinishRegistration(c *gin.Context) {
 
 // BeginLogin POST /api/authenticate/begin
 func BeginLogin(c *gin.Context) {
-	username := c.PostForm("username")
+	var req LoginBeginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
+		return
+	}
+	username := req.Username
+	if username == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing username"})
+		return
+	}
+
 	user := models.User{}
 	if err := config.DB.Preload("Credentials").Where("username = ?", username).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
@@ -104,22 +139,31 @@ func BeginLogin(c *gin.Context) {
 		return
 	}
 
-	sessionStore[username] = session
+	sessionJSON, _ := json.Marshal(session)
+	config.DB.Save(&models.WebAuthnSession{
+		Username:   username,
+		SessionRaw: sessionJSON,
+	})
 	c.JSON(http.StatusOK, options)
 }
 
 // FinishLogin POST /api/authenticate/finish
 func FinishLogin(c *gin.Context) {
-	username := c.PostForm("username")
+	username := c.Query("username")
+	if username == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing username"})
+		return
+	}
 	user := models.User{}
 	config.DB.Preload("Credentials").Where("username = ?", username).First(&user)
 
-	session := sessionStore[username]
-	_, err := webAuthn.FinishLogin(&user, *session, c.Request)
+	_, err := webAuthn.FinishLogin(&user, getSession(c, username), c.Request)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+
+	config.DB.Delete(&models.WebAuthnSession{}, "username = ?", username)
 
 	c.JSON(http.StatusOK, gin.H{"status": "authenticated"})
 }
