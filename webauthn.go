@@ -39,22 +39,27 @@ func InitWebAuthn() {
 func BeginRegistration(c *gin.Context) {
 	var req RegistrationBeginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
+		respondWithInvalidJSON(c)
 		return
 	}
 	username := req.Username
 	displayName := req.DisplayName
 	logger.Info("register begin for user ", username, displayName)
 
-	user := FindOrCreateUser(username, displayName)
+	user, errCreatingUser := FindOrCreateUser(username, displayName)
+	if errCreatingUser != nil {
+		respondWithError(c, http.StatusInternalServerError, "failed to create user: "+errCreatingUser.Error())
+		return
+	}
+
 	options, session, err := webAuthn.BeginRegistration(user)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondWithError(c, http.StatusInternalServerError, "failed to begin registration: "+err.Error())
 		return
 	}
 
 	if err := SaveWebAuthnSession(session, username); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondWithFailedToSaveSession(c)
 		return
 	}
 
@@ -65,35 +70,36 @@ func BeginRegistration(c *gin.Context) {
 func FinishRegistration(c *gin.Context) {
 	username := c.Query("username")
 	if username == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "missing username"})
+		responseWithMissingUsername(c)
 		return
 	}
+
 	user := GetUserByUsername(username)
 	if user == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		respondWithUserNotFound(c)
 		return
 	}
 
 	session, errParsingSession := getAndParseWebAuthnSession(username)
 	if errParsingSession != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": errParsingSession.Error()})
+		respondWithFailedToParseSession(c)
 		return
 	}
 
 	cred, errFinishReg := webAuthn.FinishRegistration(user, *session, c.Request)
 	if errFinishReg != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": errFinishReg.Error()})
+		respondWithError(c, http.StatusBadRequest, "failed to finish registration: "+errFinishReg.Error())
 		return
 	}
 
 	_, errCreateCred := CreateCredential(cred, user)
 	if errCreateCred != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errCreateCred})
+		respondWithError(c, http.StatusInternalServerError, "failed to create credential: "+errCreateCred.Error())
 		return
 	}
 
 	if err := RemoveWebAuthnSession(username).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		respondWithFailedToRemoveSession(c)
 		return
 	}
 
@@ -104,29 +110,29 @@ func FinishRegistration(c *gin.Context) {
 func BeginLogin(c *gin.Context) {
 	var req LoginBeginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
+		respondWithInvalidJSON(c)
 		return
 	}
 	username := req.Username
 	if username == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "missing username"})
+		responseWithMissingUsername(c)
 		return
 	}
 
 	user := GetUserByUsername(username)
 	if user == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		respondWithUserNotFound(c)
 		return
 	}
 
 	options, session, err := webAuthn.BeginLogin(user)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondWithError(c, http.StatusInternalServerError, "failed to begin login: "+err.Error())
 		return
 	}
 
 	if err := SaveWebAuthnSession(session, username); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondWithFailedToSaveSession(c)
 		return
 	}
 
@@ -137,29 +143,30 @@ func BeginLogin(c *gin.Context) {
 func FinishLogin(c *gin.Context) {
 	username := c.Query("username")
 	if username == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "missing username"})
+		responseWithMissingUsername(c)
 		return
 	}
+
 	user := GetUserByUsername(username)
 	if user == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		respondWithUserNotFound(c)
 		return
 	}
 
 	session, errParsingSession := getAndParseWebAuthnSession(username)
 	if errParsingSession != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": errParsingSession.Error()})
+		respondWithFailedToParseSession(c)
 		return
 	}
 
 	_, errFinishLogin := webAuthn.FinishLogin(user, *session, c.Request)
 	if errFinishLogin != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": errFinishLogin.Error()})
+		respondWithError(c, http.StatusUnauthorized, "failed to finish login: "+errFinishLogin.Error())
 		return
 	}
 
 	if err := RemoveWebAuthnSession(username).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		respondWithFailedToRemoveSession(c)
 		return
 	}
 
@@ -177,4 +184,32 @@ func getAndParseWebAuthnSession(username string) (*webauthn.SessionData, error) 
 		return nil, err
 	}
 	return &sd, nil
+}
+
+func respondWithError(c *gin.Context, code int, message string) {
+	c.JSON(code, gin.H{"error": message})
+}
+
+func respondWithInvalidJSON(c *gin.Context) {
+	respondWithError(c, http.StatusBadRequest, "invalid JSON")
+}
+
+func responseWithMissingUsername(c *gin.Context) {
+	respondWithError(c, http.StatusBadRequest, "missing username")
+}
+
+func respondWithUserNotFound(c *gin.Context) {
+	respondWithError(c, http.StatusNotFound, "user not found")
+}
+
+func respondWithFailedToParseSession(c *gin.Context) {
+	respondWithError(c, http.StatusBadRequest, "failed to parse session")
+}
+
+func respondWithFailedToRemoveSession(c *gin.Context) {
+	respondWithError(c, http.StatusInternalServerError, "failed to remove session")
+}
+
+func respondWithFailedToSaveSession(c *gin.Context) {
+	respondWithError(c, http.StatusInternalServerError, "failed to save session")
 }

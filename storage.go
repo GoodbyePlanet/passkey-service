@@ -8,10 +8,12 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 )
 
-func FindOrCreateUser(username string, displayName string) *models.User {
+func FindOrCreateUser(username string, displayName string) (*models.User, error) {
 	user := models.User{Username: username, DisplayName: displayName}
-	config.DB.FirstOrCreate(&user, models.User{Username: username})
-	return &user
+	if err := config.DB.FirstOrCreate(&user, models.User{Username: username}).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func GetUserByUsername(username string) *models.User {
