@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"passkey-service/config"
 	"passkey-service/models"
 
 	"github.com/go-webauthn/webauthn/webauthn"
+	"gorm.io/gorm"
 )
 
 func FindOrCreateUser(username string, displayName string) (*models.User, error) {
@@ -24,7 +26,15 @@ func GetUserByUsername(username string) *models.User {
 	return &user
 }
 
-func CreateCredential(cred *webauthn.Credential, user *models.User) (*models.Credential, error) {
+func GetUserWithCredentials(username string) (*models.User, error) {
+	user := models.User{}
+	if err := config.DB.Preload("Credentials").Where("username = ?", username).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func CreateOrUpdateCredential(cred *webauthn.Credential, user *models.User) (*models.Credential, error) {
 	dbCred := models.Credential{
 		UserID:          user.ID,
 		ID:              cred.ID,
@@ -49,9 +59,27 @@ func CreateCredential(cred *webauthn.Credential, user *models.User) (*models.Cre
 		PublicKeyAlgorithm: cred.Attestation.PublicKeyAlgorithm,
 	}
 
-	if err := config.DB.Create(&dbCred).Error; err != nil {
+	var existing models.Credential
+	err := config.DB.Where("id = ?", cred.ID).First(&existing).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			println("Creating new credential for user ", user)
+			if err := config.DB.Create(&dbCred).Error; err != nil {
+				return nil, err
+			}
+			println("Created new credential for user ", user)
+			return &dbCred, nil
+		}
 		return nil, err
 	}
+
+	// Update existing record
+	dbCred.ID = existing.ID
+	println("Updating existing credential for user ", user)
+	if err := config.DB.Model(&existing).Updates(dbCred).Error; err != nil {
+		return nil, err
+	}
+	println("Updated existing credential for user ", user)
 	return &dbCred, nil
 }
 

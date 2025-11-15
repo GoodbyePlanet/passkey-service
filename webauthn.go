@@ -44,7 +44,6 @@ func BeginRegistration(c *gin.Context) {
 	}
 	username := req.Username
 	displayName := req.DisplayName
-	logger.Info("register begin for user ", username, displayName)
 
 	user, errCreatingUser := FindOrCreateUser(username, displayName)
 	if errCreatingUser != nil {
@@ -92,13 +91,13 @@ func FinishRegistration(c *gin.Context) {
 		return
 	}
 
-	_, errCreateCred := CreateCredential(cred, user)
+	_, errCreateCred := CreateOrUpdateCredential(cred, user)
 	if errCreateCred != nil {
 		respondWithError(c, http.StatusInternalServerError, "failed to create credential: "+errCreateCred.Error())
 		return
 	}
 
-	if err := RemoveWebAuthnSession(username).Error; err != nil {
+	if err := RemoveWebAuthnSession(username); err != nil {
 		respondWithFailedToRemoveSession(c)
 		return
 	}
@@ -119,15 +118,15 @@ func BeginLogin(c *gin.Context) {
 		return
 	}
 
-	user := GetUserByUsername(username)
-	if user == nil {
+	user, errUserCredentials := GetUserWithCredentials(username)
+	if errUserCredentials != nil {
 		respondWithUserNotFound(c)
 		return
 	}
 
-	options, session, err := webAuthn.BeginLogin(user)
-	if err != nil {
-		respondWithError(c, http.StatusInternalServerError, "failed to begin login: "+err.Error())
+	options, session, errBeginLogin := webAuthn.BeginLogin(user)
+	if errBeginLogin != nil {
+		respondWithError(c, http.StatusInternalServerError, "failed to begin login: "+errBeginLogin.Error())
 		return
 	}
 
@@ -147,8 +146,9 @@ func FinishLogin(c *gin.Context) {
 		return
 	}
 
-	user := GetUserByUsername(username)
-	if user == nil {
+	user, errUserCredentials := GetUserWithCredentials(username)
+	logger.Info("login finsh for user ", user)
+	if errUserCredentials != nil {
 		respondWithUserNotFound(c)
 		return
 	}
@@ -159,13 +159,19 @@ func FinishLogin(c *gin.Context) {
 		return
 	}
 
-	_, errFinishLogin := webAuthn.FinishLogin(user, *session, c.Request)
+	cred, errFinishLogin := webAuthn.FinishLogin(user, *session, c.Request)
 	if errFinishLogin != nil {
 		respondWithError(c, http.StatusUnauthorized, "failed to finish login: "+errFinishLogin.Error())
 		return
 	}
 
-	if err := RemoveWebAuthnSession(username).Error; err != nil {
+	_, errUpdateCred := CreateOrUpdateCredential(cred, user)
+	if errUpdateCred != nil {
+		respondWithError(c, http.StatusInternalServerError, "failed to update credential: "+errUpdateCred.Error())
+		return
+	}
+
+	if err := RemoveWebAuthnSession(username); err != nil {
 		respondWithFailedToRemoveSession(c)
 		return
 	}
