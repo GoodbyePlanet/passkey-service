@@ -23,7 +23,7 @@ type Credential struct {
 
 	// Metadata
 	AttestationType string
-	Transport       []string
+	Transport       []string `gorm:"type:json"`
 
 	// Flags
 	UserPresent    bool
@@ -66,27 +66,22 @@ func (u *User) WebAuthnCredentials() []webauthn.Credential {
 
 	for i, c := range u.Credentials {
 		creds[i] = webauthn.Credential{
-			ID:        c.ID,
-			PublicKey: c.PublicKey,
-
+			ID:              c.ID,
+			PublicKey:       c.PublicKey,
 			AttestationType: c.AttestationType,
-
-			Transport: toTransports(c.Transport),
-
+			Transport:       toTransports(c.Transport),
 			Flags: webauthn.CredentialFlags{
 				UserPresent:    c.UserPresent,
 				UserVerified:   c.UserVerified,
 				BackupEligible: c.BackupEligible,
 				BackupState:    c.BackupState,
 			},
-
 			Authenticator: webauthn.Authenticator{
 				AAGUID:       c.AAGUID,
 				SignCount:    c.SignCount,
 				CloneWarning: c.CloneWarning,
 				Attachment:   protocol.AuthenticatorAttachment(c.Attachment),
 			},
-
 			Attestation: webauthn.CredentialAttestation{
 				ClientDataJSON:     c.ClientDataJSON,
 				ClientDataHash:     c.ClientDataHash,
