@@ -7,7 +7,8 @@ import (
 )
 
 type WebAuthnSession struct {
-	Username   string         `gorm:"primaryKey"`
+	SessionID  string `gorm:"primaryKey"`
+	Username   string
 	SessionRaw datatypes.JSON `gorm:"column:session_data"`
 	CreatedAt  time.Time
 }

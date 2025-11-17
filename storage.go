@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"passkey-service/config"
@@ -79,25 +81,38 @@ func CreateOrUpdateCredential(cred *webauthn.Credential, user *models.User) (*mo
 	return &dbCred, nil
 }
 
-func SaveWebAuthnSession(session *webauthn.SessionData, username string) error {
+func SaveWebAuthnSession(session *webauthn.SessionData, username string) (string, error) {
 	sessionJSON, err := json.Marshal(session)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return config.DB.Save(&models.WebAuthnSession{
+	sessionID := generateSessionID()
+	err = config.DB.Save(&models.WebAuthnSession{
+		SessionID:  sessionID,
 		Username:   username,
 		SessionRaw: sessionJSON,
 	}).Error
+	return sessionID, err
 }
 
-func GetWebAuthnSession(username string) (*models.WebAuthnSession, error) {
+func GetWebAuthnSession(sessionID string) (*models.WebAuthnSession, error) {
 	var was models.WebAuthnSession
-	if err := config.DB.Where("username = ?", username).First(&was).Error; err != nil {
+	if err := config.DB.Where("session_id = ?", sessionID).First(&was).Error; err != nil {
 		return nil, err
 	}
 	return &was, nil
 }
 
-func RemoveWebAuthnSession(username string) error {
-	return config.DB.Delete(&models.WebAuthnSession{}, "username = ?", username).Error
+func RemoveWebAuthnSession(sessionID string) error {
+	return config.DB.Delete(&models.WebAuthnSession{}, "session_id = ?", sessionID).Error
+}
+
+func generateSessionID() string {
+	b := make([]byte, 32)
+	_, err := rand.Read(b)
+	if err != nil {
+		panic("failed to generate session ID:")
+	}
+
+	return base64.URLEncoding.EncodeToString(b)
 }

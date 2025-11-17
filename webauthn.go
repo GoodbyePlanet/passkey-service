@@ -37,6 +37,7 @@ func InitWebAuthn() {
 
 // BeginRegistration POST /api/register/begin
 func BeginRegistration(c *gin.Context) {
+	logger.Info("BeginRegistration flow started...")
 	var req RegistrationBeginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		respondWithInvalidJSON(c)
@@ -57,31 +58,42 @@ func BeginRegistration(c *gin.Context) {
 		return
 	}
 
-	if err := SaveWebAuthnSession(session, username); err != nil {
+	sessionID, err := SaveWebAuthnSession(session, username)
+	if err != nil {
 		respondWithFailedToSaveSession(c)
 		return
 	}
 
+	cookie := &http.Cookie{
+		Name:     "sid",
+		Value:    sessionID,
+		Path:     "/",
+		MaxAge:   3600,
+		Secure:   false, // TODO set to true when prod deployment
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	}
+	http.SetCookie(c.Writer, cookie)
 	c.JSON(http.StatusOK, options)
 }
 
 // FinishRegistration POST /api/register/finish
 func FinishRegistration(c *gin.Context) {
-	username := c.Query("username")
-	if username == "" {
-		responseWithMissingUsername(c)
-		return
+	logger.Info("FinishRegistration flow started...")
+	sid, err := c.Cookie("sid")
+	if err != nil {
+		respondWithError(c, http.StatusBadRequest, "failed to get session cookie")
 	}
 
-	user := GetUserByUsername(username)
-	if user == nil {
-		respondWithUserNotFound(c)
-		return
-	}
-
-	session, errParsingSession := getAndParseWebAuthnSession(username)
+	session, errParsingSession := getAndParseWebAuthnSession(sid)
 	if errParsingSession != nil {
 		respondWithFailedToParseSession(c)
+		return
+	}
+
+	user := GetUserByUsername(string(session.UserID))
+	if user == nil {
+		respondWithUserNotFound(c)
 		return
 	}
 
@@ -97,16 +109,27 @@ func FinishRegistration(c *gin.Context) {
 		return
 	}
 
-	if err := RemoveWebAuthnSession(username); err != nil {
+	if err := RemoveWebAuthnSession(sid); err != nil {
 		respondWithFailedToRemoveSession(c)
 		return
 	}
 
+	cookie := &http.Cookie{
+		Name:     "sid",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		Secure:   false,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	}
+	http.SetCookie(c.Writer, cookie)
 	c.JSON(http.StatusOK, gin.H{"status": "registered"})
 }
 
 // BeginLogin POST /api/authenticate/begin
 func BeginLogin(c *gin.Context) {
+	logger.Info("BeginLogin flow started...")
 	var req LoginBeginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		respondWithInvalidJSON(c)
@@ -130,31 +153,42 @@ func BeginLogin(c *gin.Context) {
 		return
 	}
 
-	if err := SaveWebAuthnSession(session, username); err != nil {
+	sessionID, err := SaveWebAuthnSession(session, username)
+	if err != nil {
 		respondWithFailedToSaveSession(c)
 		return
 	}
 
+	cookie := &http.Cookie{
+		Name:     "sid",
+		Value:    sessionID,
+		Path:     "/",
+		MaxAge:   3600,
+		Secure:   false, // TODO: set to true when prod deployment
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	}
+	http.SetCookie(c.Writer, cookie)
 	c.JSON(http.StatusOK, options)
 }
 
 // FinishLogin POST /api/authenticate/finish
 func FinishLogin(c *gin.Context) {
-	username := c.Query("username")
-	if username == "" {
-		responseWithMissingUsername(c)
-		return
+	logger.Info("FinishLogin flow started...")
+	sid, err := c.Cookie("sid")
+	if err != nil {
+		respondWithError(c, http.StatusBadRequest, "failed to get session cookie")
 	}
 
-	user, errUserCredentials := GetUserWithCredentials(username)
-	if errUserCredentials != nil {
-		respondWithUserNotFound(c)
-		return
-	}
-
-	session, errParsingSession := getAndParseWebAuthnSession(username)
+	session, errParsingSession := getAndParseWebAuthnSession(sid)
 	if errParsingSession != nil {
 		respondWithFailedToParseSession(c)
+		return
+	}
+
+	user, errUserCredentials := GetUserWithCredentials(string(session.UserID))
+	if errUserCredentials != nil {
+		respondWithUserNotFound(c)
 		return
 	}
 
@@ -170,16 +204,26 @@ func FinishLogin(c *gin.Context) {
 		return
 	}
 
-	if err := RemoveWebAuthnSession(username); err != nil {
+	if err := RemoveWebAuthnSession(sid); err != nil {
 		respondWithFailedToRemoveSession(c)
 		return
 	}
 
+	cookie := &http.Cookie{
+		Name:     "sid",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		Secure:   false,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	}
+	http.SetCookie(c.Writer, cookie)
 	c.JSON(http.StatusOK, gin.H{"status": "authenticated"})
 }
 
-func getAndParseWebAuthnSession(username string) (*webauthn.SessionData, error) {
-	was, err := GetWebAuthnSession(username)
+func getAndParseWebAuthnSession(sid string) (*webauthn.SessionData, error) {
+	was, err := GetWebAuthnSession(sid)
 	if err != nil {
 		return nil, err
 	}

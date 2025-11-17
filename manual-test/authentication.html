@@ -6,6 +6,7 @@
         const begin = await fetch("http://localhost:8080/api/authenticate/begin", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
+            credentials: "include",
             body: JSON.stringify({username: "doe"})
         }).then(r => r.json());
         console.log("Begin:", begin);
@@ -52,9 +53,10 @@
         console.log("Send this JSON to /api/authenticate/finish:");
         console.log(JSON.stringify(data, null, 2));
 
-        const finish = await fetch("http://localhost:8080/api/authenticate/finish?username=doe", {
+        const finish = await fetch("http://localhost:8080/api/authenticate/finish", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
+            credentials: "include",
             body: JSON.stringify(data)
         }).then(r => r.json());
 
