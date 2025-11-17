@@ -64,9 +64,11 @@ make db	            - Open PostgreSQL shell inside container
 make clean	        - Stop containers, remove binary and volumes
 ```
 
-#### Testing Registration flow
+#### Testing passkey registration and authentication flow
 ```
-Open registration.html in your browser.
-Copy data printed in the console, and paste it for /register/finish endpoint.
-See webauthn.http file.
+Start a http://localhost:63342 server. You can use python simple http server for this.
+Open `registration.html` in your browser. This will start registration flow, and create a new passkey.
+When registration is finished, open `authentication.html`, this will start authentication flow.
+Once authentication is finished, you will see a message "authenticated" in the browser console.
+You can take a look at the database to see the newly created user and credential.
 ```
