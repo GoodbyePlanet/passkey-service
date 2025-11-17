@@ -147,7 +147,6 @@ func FinishLogin(c *gin.Context) {
 	}
 
 	user, errUserCredentials := GetUserWithCredentials(username)
-	logger.Info("login finsh for user ", user)
 	if errUserCredentials != nil {
 		respondWithUserNotFound(c)
 		return

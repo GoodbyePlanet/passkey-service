@@ -63,11 +63,9 @@ func CreateOrUpdateCredential(cred *webauthn.Credential, user *models.User) (*mo
 	err := config.DB.Where("id = ?", cred.ID).First(&existing).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			println("Creating new credential for user ", user)
 			if err := config.DB.Create(&dbCred).Error; err != nil {
 				return nil, err
 			}
-			println("Created new credential for user ", user)
 			return &dbCred, nil
 		}
 		return nil, err
@@ -75,11 +73,9 @@ func CreateOrUpdateCredential(cred *webauthn.Credential, user *models.User) (*mo
 
 	// Update existing record
 	dbCred.ID = existing.ID
-	println("Updating existing credential for user ", user)
 	if err := config.DB.Model(&existing).Updates(dbCred).Error; err != nil {
 		return nil, err
 	}
-	println("Updated existing credential for user ", user)
 	return &dbCred, nil
 }
 
