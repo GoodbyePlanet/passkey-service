@@ -28,7 +28,7 @@ func InitWebAuthn() {
 	webAuthn, err = webauthn.New(&webauthn.Config{
 		RPDisplayName: "Passkey Service",
 		RPID:          os.Getenv("RP_ID"),
-		RPOrigins:     []string{"http://localhost:63342", "http://localhost:8080"},
+		RPOrigins:     []string{"http://localhost:6334", "http://localhost:8080"},
 	})
 	if err != nil {
 		panic("failed to init webauthn: " + err.Error())
@@ -64,16 +64,7 @@ func BeginRegistration(c *gin.Context) {
 		return
 	}
 
-	cookie := &http.Cookie{
-		Name:     "sid",
-		Value:    sessionID,
-		Path:     "/",
-		MaxAge:   3600,
-		Secure:   false, // TODO set to true when prod deployment
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-	}
-	http.SetCookie(c.Writer, cookie)
+	SetCookie(c, "sid", sessionID, "/api/register", 3600)
 	c.JSON(http.StatusOK, options)
 }
 
@@ -114,16 +105,7 @@ func FinishRegistration(c *gin.Context) {
 		return
 	}
 
-	cookie := &http.Cookie{
-		Name:     "sid",
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		Secure:   false,
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-	}
-	http.SetCookie(c.Writer, cookie)
+	ClearCookie(c, "sid", "/api/register")
 	c.JSON(http.StatusOK, gin.H{"status": "registered"})
 }
 
@@ -159,16 +141,7 @@ func BeginLogin(c *gin.Context) {
 		return
 	}
 
-	cookie := &http.Cookie{
-		Name:     "sid",
-		Value:    sessionID,
-		Path:     "/",
-		MaxAge:   3600,
-		Secure:   false, // TODO: set to true when prod deployment
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-	}
-	http.SetCookie(c.Writer, cookie)
+	SetCookie(c, "sid", sessionID, "/api/authenticate", 3600)
 	c.JSON(http.StatusOK, options)
 }
 
@@ -209,16 +182,7 @@ func FinishLogin(c *gin.Context) {
 		return
 	}
 
-	cookie := &http.Cookie{
-		Name:     "sid",
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		Secure:   false,
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-	}
-	http.SetCookie(c.Writer, cookie)
+	ClearCookie(c, "sid", "/api/authenticate")
 	c.JSON(http.StatusOK, gin.H{"status": "authenticated"})
 }
 
