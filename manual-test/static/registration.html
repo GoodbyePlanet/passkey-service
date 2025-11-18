@@ -3,15 +3,15 @@
 <body>
 <script>
     async function register() {
-        const begin = await fetch("http://localhost:8080/api/register/begin", {
+        const beginRegistrationResponse = await fetch("http://localhost:8080/api/register/begin", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             credentials: "include",
             body: JSON.stringify({username: "doe", displayName: "doe"}),
         }).then(r => r.json());
 
-        console.log("Begin:", begin);
-        const publicKey = begin.publicKey;
+        console.log("Begin Registration response: ", beginRegistrationResponse);
+        const publicKey = beginRegistrationResponse.publicKey;
         publicKey.challenge = Uint8Array.from(
             atob(base64urlToBase64(publicKey.challenge)),
             c => c.charCodeAt(0)
@@ -21,7 +21,7 @@
             c => c.charCodeAt(0)
         );
         const cred = await navigator.credentials.create({publicKey});
-        console.log("Credential:", cred);
+        console.log("Credentials: ", cred);
 
         // Convert ArrayBuffers to base64url
         function bufferToBase64url(buffer) {
@@ -50,14 +50,14 @@
         };
         console.log(JSON.stringify(data, null, 2));
 
-        const finish = await fetch("http://localhost:8080/api/register/finish", {
+        const finishRegistrationResponse = await fetch("http://localhost:8080/api/register/finish", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             credentials: "include",
             body: JSON.stringify(data)
         }).then(r => r.json());
 
-        console.log("Finish:", finish);
+        console.log("Finish Registration Response: ", finishRegistrationResponse);
     }
 
     register();

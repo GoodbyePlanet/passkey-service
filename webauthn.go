@@ -28,7 +28,7 @@ func InitWebAuthn() {
 	webAuthn, err = webauthn.New(&webauthn.Config{
 		RPDisplayName: "Passkey Service",
 		RPID:          os.Getenv("RP_ID"),
-		RPOrigins:     []string{"http://localhost:6334", "http://localhost:8080"},
+		RPOrigins:     GetEnvList("RP_ORIGINS"),
 	})
 	if err != nil {
 		panic("failed to init webauthn: " + err.Error())

@@ -3,15 +3,15 @@
 <body>
 <script>
     async function authenticate() {
-        const begin = await fetch("http://localhost:8080/api/authenticate/begin", {
+        const beginAuthenticationResponse = await fetch("http://localhost:8080/api/authenticate/begin", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             credentials: "include",
             body: JSON.stringify({username: "doe"})
         }).then(r => r.json());
-        console.log("Begin:", begin);
+        console.log("Begin Registration Response: ", beginAuthenticationResponse);
 
-        const publicKey = begin.publicKey;
+        const publicKey = beginAuthenticationResponse.publicKey;
 
         publicKey.challenge = Uint8Array.from(atob(publicKey.challenge.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
 
@@ -24,14 +24,6 @@
 
         const assertion = await navigator.credentials.get({publicKey});
         console.log("Assertion:", assertion);
-        const buf = assertion.response.authenticatorData;
-        const bytes = new Uint8Array(buf);
-
-        // Flags are at byte 32
-        const flags = bytes[32];
-
-        console.log("Flags byte:", flags.toString(2).padStart(8, "0"));
-        console.log("Raw flags:", flags);
 
         function bufferToBase64url(buffer) {
             return btoa(String.fromCharCode(...new Uint8Array(buffer)))
@@ -50,17 +42,15 @@
             }
         };
 
-        console.log("Send this JSON to /api/authenticate/finish:");
         console.log(JSON.stringify(data, null, 2));
-
-        const finish = await fetch("http://localhost:8080/api/authenticate/finish", {
+        const finishAuthenticationResponse = await fetch("http://localhost:8080/api/authenticate/finish", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             credentials: "include",
             body: JSON.stringify(data)
         }).then(r => r.json());
 
-        console.log("Finish:", finish);
+        console.log("Finish Authentication Response: ", finishAuthenticationResponse);
     }
 
     authenticate();
