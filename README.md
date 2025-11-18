@@ -1,6 +1,7 @@
 ### Passkey Service
 
-A simple Go + Gin service implementing passkey (WebAuthn) registration and authentication using PostgreSQL.
+A simple Go + Gin service implementing passkey (WebAuthn) registration and authentication flows.
+PostgreSQL is used as a persistence layer.
 
 This service exposes the following REST API endpoints:
 
