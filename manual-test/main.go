@@ -13,6 +13,9 @@ func main() {
 	r.GET("/api/authenticate", func(c *gin.Context) {
 		c.File("./static/authentication.html")
 	})
+	r.GET("/api/passkeys", func(c *gin.Context) {
+		c.File("./static/passkeys.html")
+	})
 	r.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")

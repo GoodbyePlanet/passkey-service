@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Passkey Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f6fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #status {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 15px;
+            font-weight: bold;
+            min-height: 24px;
+        }
+
+        #status.success {
+            color: #2ecc71;
+        }
+
+        #status.error {
+            color: #e74c3c;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            width: 380px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            margin-top: 0;
+            text-align: center;
+            color: #333;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #444;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 6px;
+            background: #4a90e2;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #357ab8;
+        }
+
+        #log {
+            margin-top: 20px;
+            font-size: 13px;
+            background: #eee;
+            padding: 10px;
+            border-radius: 6px;
+            height: 140px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="card">
+    <h2>Passkey Demo</h2>
+
+    <div id="status"></div>
+
+    <label for="username">Username</label>
+    <input id="username" placeholder="Enter username..."/>
+
+    <button onclick="registerUser()">Register</button>
+    <button onclick="authenticateUser()">Authenticate</button>
+
+    <div id="log"></div>
+</div>
+
+<script>
+
+    function log(msg) {
+        document.getElementById("log").textContent += msg + "\n";
+    }
+
+    function setStatus(type, text) {
+        const el = document.getElementById("status");
+        el.className = type;
+        el.textContent = text;
+    }
+
+    /* ------------------------ HELPER FUNCTIONS ------------------------ */
+
+    function bufferToBase64url(buffer) {
+        return btoa(String.fromCharCode(...new Uint8Array(buffer)))
+            .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    }
+
+    function base64urlToBase64(base64url) {
+        base64url = base64url.replace(/-/g, "+").replace(/_/g, "/");
+        const pad = base64url.length % 4;
+        return base64url + (pad ? "=".repeat(4 - pad) : "");
+    }
+
+    /* ------------------------ REGISTER ------------------------ */
+
+    async function registerUser() {
+        const username = document.getElementById("username").value.trim();
+
+        if (!username) {
+            setStatus("error", "Username is required");
+            log("❗ Username is required");
+            return;
+        }
+
+        setStatus("", "");
+        log("📡 Starting registration...");
+
+        try {
+            const begin = await fetch("http://localhost:8080/api/register/begin", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                credentials: "include",
+                body: JSON.stringify({username, displayName: username})
+            }).then(r => r.json());
+
+            if (begin.error) {
+                log("Registration Begin error --- " + begin.error);
+            } else {
+                log("Registration Begin response received");
+                log(JSON.stringify(begin, null, 2));
+            }
+
+            const publicKey = begin.publicKey;
+
+            publicKey.challenge = Uint8Array.from(
+                atob(base64urlToBase64(publicKey.challenge)),
+                c => c.charCodeAt(0)
+            );
+
+            publicKey.user.id = Uint8Array.from(
+                atob(base64urlToBase64(publicKey.user.id)),
+                c => c.charCodeAt(0)
+            );
+
+            const cred = await navigator.credentials.create({publicKey});
+            log("Credential created");
+
+            const data = {
+                id: cred.id,
+                rawId: bufferToBase64url(cred.rawId),
+                type: cred.type,
+                response: {
+                    attestationObject: bufferToBase64url(cred.response.attestationObject),
+                    clientDataJSON: bufferToBase64url(cred.response.clientDataJSON)
+                }
+            };
+
+            const finish = await fetch("http://localhost:8080/api/register/finish", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                credentials: "include",
+                body: JSON.stringify(data)
+            }).then(r => r.json());
+
+            log("🎉 Registration complete!");
+            log(JSON.stringify(finish, null, 2));
+            setStatus("success", "Registration successful!");
+        } catch (err) {
+            console.error(err);
+            log("❌ Registration failed: " + err);
+            setStatus("error", "Registration failed");
+        }
+    }
+
+    /* ------------------------ AUTHENTICATE ------------------------ */
+
+    async function authenticateUser() {
+        const username = document.getElementById("username").value.trim();
+
+        if (!username) {
+            setStatus("error", "Username is required");
+            log("❗ Username is required");
+            return;
+        }
+
+        setStatus("", "");
+        log("📡 Starting authentication...");
+
+        try {
+            const begin = await fetch("http://localhost:8080/api/authenticate/begin", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                credentials: "include",
+                body: JSON.stringify({username})
+            }).then(r => r.json()).catch((reason) => {
+                log("Something went wrong: " + reason)
+            });
+
+            if (begin.error) {
+                log("Authentication Begin error --- " + begin.error);
+            } else {
+                log("Authentication Begin response received");
+                log(JSON.stringify(begin, null, 2));
+            }
+
+            const publicKey = begin.publicKey;
+
+            publicKey.challenge = Uint8Array.from(
+                atob(publicKey.challenge.replace(/-/g, "+").replace(/_/g, "/")),
+                c => c.charCodeAt(0)
+            );
+
+            if (publicKey.allowCredentials) {
+                publicKey.allowCredentials = publicKey.allowCredentials.map(cred => ({
+                    ...cred,
+                    id: Uint8Array.from(
+                        atob(cred.id.replace(/-/g, "+").replace(/_/g, "/")),
+                        c => c.charCodeAt(0)
+                    )
+                }));
+            }
+
+            const assertion = await navigator.credentials.get({publicKey});
+            log("Assertion received");
+
+            const data = {
+                id: assertion.id,
+                rawId: bufferToBase64url(assertion.rawId),
+                type: assertion.type,
+                response: {
+                    authenticatorData: bufferToBase64url(assertion.response.authenticatorData),
+                    clientDataJSON: bufferToBase64url(assertion.response.clientDataJSON),
+                    signature: bufferToBase64url(assertion.response.signature),
+                    userHandle: assertion.response.userHandle
+                        ? bufferToBase64url(assertion.response.userHandle)
+                        : null
+                }
+            };
+
+            const finish = await fetch("http://localhost:8080/api/authenticate/finish", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                credentials: "include",
+                body: JSON.stringify(data)
+            }).then(r => r.json());
+
+            log("🎉 Authentication complete!");
+            log(JSON.stringify(finish, null, 2));
+            setStatus("success", "Authentication successful!");
+        } catch (err) {
+            console.error(err);
+            log("❌ Authentication failed: " + err);
+            setStatus("error", "Authentication failed");
+        }
+    }
+
+</script>
+
+</body>
+</html>
