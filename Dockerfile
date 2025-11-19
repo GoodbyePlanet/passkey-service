@@ -3,7 +3,7 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN go build -o passkey-service main.go
+RUN go build -o passkey-service .
 
 FROM gcr.io/distroless/base-debian12
 WORKDIR /app

@@ -26,8 +26,19 @@ services:
       DB_NAME: passkey_db
       DB_PORT: 5432
       PORT: 8080
+      ENV: development
+      RP_ID: localhost
+      RP_ORIGINS: http://localhost:6334,http://localhost:8080
     ports:
       - "8080:8080"
+    restart: always
+
+  manual_test:
+    build:
+      context: ./manual-test
+    container_name: manual_test_server
+    ports:
+      - "6334:6334"
     restart: always
 
 volumes:

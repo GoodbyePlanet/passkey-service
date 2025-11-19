@@ -32,7 +32,7 @@ docker-build:
 	$(DOCKER_COMPOSE) build
 
 up:
-	$(DOCKER_COMPOSE) up -d
+	$(DOCKER_COMPOSE) up
 
 db-up:
 	$(DOCKER_COMPOSE) up -d db
