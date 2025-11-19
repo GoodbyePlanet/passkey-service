@@ -71,6 +71,5 @@ cd manual-tests
 go run main.go
 
 In your browser:
-http://localhost:6334/api/register 
-http://localhost:6334/api/authenticate
+http://localhost:6334/api/passkeys 
 ```
