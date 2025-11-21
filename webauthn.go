@@ -23,7 +23,6 @@ type LoginBeginRequest struct {
 
 type UserPasskeyResponse struct {
 	Name      string `json:"name"`
-	SignCount uint32 `json:"signCount"`
 	CreatedAt string `json:"createdAt"`
 }
 
@@ -217,7 +216,6 @@ func GetRegisteredPasskeys(c *gin.Context) {
 	for _, cred := range user.Credentials {
 		passkeys = append(passkeys, UserPasskeyResponse{
 			Name:      cred.Name,
-			SignCount: cred.SignCount,
 			CreatedAt: cred.CreatedAt.Format("2006-01-02 15:04:05"),
 		})
 	}

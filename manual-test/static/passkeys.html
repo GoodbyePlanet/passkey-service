@@ -175,12 +175,12 @@
 
             const cred = await navigator.credentials.create({publicKey});
             log("Credential created");
-            // TODO: send authenticatorAttachment
-            // TODO: check auhenticator data and sign count
+
             const data = {
                 id: cred.id,
                 rawId: bufferToBase64url(cred.rawId),
                 type: cred.type,
+                authenticatorAttachment: cred.authenticatorAttachment,
                 response: {
                     attestationObject: bufferToBase64url(cred.response.attestationObject),
                     clientDataJSON: bufferToBase64url(cred.response.clientDataJSON)
@@ -259,6 +259,7 @@
                 id: assertion.id,
                 rawId: bufferToBase64url(assertion.rawId),
                 type: assertion.type,
+                authenticatorAttachment: assertion.authenticatorAttachment,
                 response: {
                     authenticatorData: bufferToBase64url(assertion.response.authenticatorData),
                     clientDataJSON: bufferToBase64url(assertion.response.clientDataJSON),
