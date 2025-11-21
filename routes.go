@@ -22,6 +22,7 @@ func SetupRouter() *gin.Engine {
 		api.POST("/register/finish", FinishRegistration)
 		api.POST("/authenticate/begin", BeginLogin)
 		api.POST("/authenticate/finish", FinishLogin)
+		api.GET("/users/:username/registered-passkeys", GetRegisteredPasskeys)
 	}
 
 	return r

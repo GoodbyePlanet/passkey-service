@@ -12,7 +12,7 @@ func main() {
 	})
 
 	r.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:8085")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET,POST,OPTIONS")

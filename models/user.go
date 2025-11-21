@@ -17,6 +17,7 @@ type Credential struct {
 	gorm.Model
 
 	UserID uint
+	Name   string `gorm:"default:''"`
 
 	ID        []byte
 	PublicKey []byte

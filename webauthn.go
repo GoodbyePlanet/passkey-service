@@ -21,6 +21,12 @@ type LoginBeginRequest struct {
 	Username string `json:"username"`
 }
 
+type UserPasskeyResponse struct {
+	Name      string `json:"name"`
+	SignCount uint32 `json:"signCount"`
+	CreatedAt string `json:"createdAt"`
+}
+
 var logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 func InitWebAuthn() {
@@ -64,7 +70,7 @@ func BeginRegistration(c *gin.Context) {
 		return
 	}
 
-	SetCookie(c, "sid", sessionID, "/api/register", 3600)
+	SetCookie(c, "sid", sessionID, "/", 3600)
 	c.JSON(http.StatusOK, options)
 }
 
@@ -74,6 +80,11 @@ func FinishRegistration(c *gin.Context) {
 	sid, err := c.Cookie("sid")
 	if err != nil {
 		respondWithError(c, http.StatusBadRequest, "failed to get session cookie")
+	}
+
+	passkeyName := c.Query("passkeyName")
+	if passkeyName == "" {
+		respondWithError(c, http.StatusBadRequest, "missing passkeyName query param")
 	}
 
 	session, errParsingSession := getAndParseWebAuthnSession(sid)
@@ -94,7 +105,7 @@ func FinishRegistration(c *gin.Context) {
 		return
 	}
 
-	_, errCreateCred := CreateOrUpdateCredential(cred, user)
+	_, errCreateCred := CreateOrUpdateCredential(cred, user, passkeyName)
 	if errCreateCred != nil {
 		respondWithError(c, http.StatusInternalServerError, "failed to create credential: "+errCreateCred.Error())
 		return
@@ -105,8 +116,8 @@ func FinishRegistration(c *gin.Context) {
 		return
 	}
 
-	ClearCookie(c, "sid", "/api/register")
-	c.JSON(http.StatusOK, gin.H{"status": "registered"})
+	ClearCookie(c, "sid", "/")
+	c.JSON(http.StatusOK, gin.H{"status": "registered", "username": string(session.UserID)})
 }
 
 // BeginLogin POST /api/authenticate/begin
@@ -141,7 +152,7 @@ func BeginLogin(c *gin.Context) {
 		return
 	}
 
-	SetCookie(c, "sid", sessionID, "/api/authenticate", 3600)
+	SetCookie(c, "sid", sessionID, "/", 3600)
 	c.JSON(http.StatusOK, options)
 }
 
@@ -182,8 +193,43 @@ func FinishLogin(c *gin.Context) {
 		return
 	}
 
-	ClearCookie(c, "sid", "/api/authenticate")
+	ClearCookie(c, "sid", "/")
 	c.JSON(http.StatusOK, gin.H{"status": "authenticated"})
+}
+
+// GetRegisteredPasskeys GET /api/users/:username/registered-passkeys
+func GetRegisteredPasskeys(c *gin.Context) {
+	logger.Info("GetPasskeysByUsername...")
+
+	username := c.Param("username")
+	if username == "" {
+		responseWithMissingUsername(c)
+		return
+	}
+
+	user, err := GetUserWithCredentials(username)
+	if err != nil {
+		respondWithUserNotFound(c)
+		return
+	}
+
+	passkeys := make([]UserPasskeyResponse, 0, len(user.Credentials))
+	for _, cred := range user.Credentials {
+		passkeys = append(passkeys, UserPasskeyResponse{
+			Name:      cred.Name,
+			SignCount: cred.SignCount,
+			CreatedAt: cred.CreatedAt.Format("2006-01-02 15:04:05"),
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"userPasskeys": gin.H{
+			"username":    user.Username,
+			"displayName": user.DisplayName,
+			"createdAt":   user.CreatedAt.Format("2006-01-02 15:04:05"),
+			"passkeys":    passkeys,
+		},
+	})
 }
 
 func getAndParseWebAuthnSession(sid string) (*webauthn.SessionData, error) {

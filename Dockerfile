@@ -8,5 +8,5 @@ RUN go build -o passkey-service .
 FROM gcr.io/distroless/base-debian12
 WORKDIR /app
 COPY --from=builder /app/passkey-service .
-EXPOSE 8080
+EXPOSE 8085
 CMD ["./passkey-service"]

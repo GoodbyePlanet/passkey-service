@@ -7,6 +7,7 @@ import (
 	"errors"
 	"passkey-service/config"
 	"passkey-service/models"
+	"time"
 
 	"github.com/go-webauthn/webauthn/webauthn"
 	"gorm.io/gorm"
@@ -36,35 +37,37 @@ func GetUserWithCredentials(username string) (*models.User, error) {
 	return &user, nil
 }
 
-func CreateOrUpdateCredential(cred *webauthn.Credential, user *models.User) (*models.Credential, error) {
-	dbCred := models.Credential{
-		UserID:          user.ID,
-		ID:              cred.ID,
-		PublicKey:       cred.PublicKey,
-		AttestationType: cred.AttestationType,
-		Transport:       models.TransportToStrings(cred.Transport),
-
-		UserPresent:    cred.Flags.UserPresent,
-		UserVerified:   cred.Flags.UserVerified,
-		BackupEligible: cred.Flags.BackupEligible,
-		BackupState:    cred.Flags.BackupState,
-
-		AAGUID:       cred.Authenticator.AAGUID,
-		SignCount:    cred.Authenticator.SignCount,
-		CloneWarning: cred.Authenticator.CloneWarning,
-		Attachment:   string(cred.Authenticator.Attachment),
-
-		ClientDataJSON:     cred.Attestation.ClientDataJSON,
-		ClientDataHash:     cred.Attestation.ClientDataHash,
-		AuthenticatorData:  cred.Attestation.AuthenticatorData,
-		Object:             cred.Attestation.Object,
-		PublicKeyAlgorithm: cred.Attestation.PublicKeyAlgorithm,
-	}
-
+func CreateOrUpdateCredential(cred *webauthn.Credential, user *models.User, passkeyName ...string) (*models.Credential, error) {
 	var existing models.Credential
 	err := config.DB.Where("id = ?", cred.ID).First(&existing).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			dbCred := models.Credential{
+				UserID:          user.ID,
+				ID:              cred.ID,
+				PublicKey:       cred.PublicKey,
+				AttestationType: cred.AttestationType,
+				Transport:       models.TransportToStrings(cred.Transport),
+
+				UserPresent:    cred.Flags.UserPresent,
+				UserVerified:   cred.Flags.UserVerified,
+				BackupEligible: cred.Flags.BackupEligible,
+				BackupState:    cred.Flags.BackupState,
+
+				AAGUID:       cred.Authenticator.AAGUID,
+				SignCount:    cred.Authenticator.SignCount,
+				CloneWarning: cred.Authenticator.CloneWarning,
+				Attachment:   string(cred.Authenticator.Attachment),
+
+				ClientDataJSON:     cred.Attestation.ClientDataJSON,
+				ClientDataHash:     cred.Attestation.ClientDataHash,
+				AuthenticatorData:  cred.Attestation.AuthenticatorData,
+				Object:             cred.Attestation.Object,
+				PublicKeyAlgorithm: cred.Attestation.PublicKeyAlgorithm,
+			}
+			if len(passkeyName) > 0 {
+				dbCred.Name = passkeyName[0]
+			}
 			if err := config.DB.Create(&dbCred).Error; err != nil {
 				return nil, err
 			}
@@ -73,12 +76,19 @@ func CreateOrUpdateCredential(cred *webauthn.Credential, user *models.User) (*mo
 		return nil, err
 	}
 
-	// Update existing record
-	dbCred.ID = existing.ID
-	if err := config.DB.Model(&existing).Updates(dbCred).Error; err != nil {
+	// Credential exists → login, update only mutable fields
+	existing.SignCount = cred.Authenticator.SignCount
+	existing.UserVerified = cred.Flags.UserVerified
+	existing.UserPresent = cred.Flags.UserPresent
+	existing.BackupEligible = cred.Flags.BackupEligible
+	existing.BackupState = cred.Flags.BackupState
+	existing.UpdatedAt = time.Now()
+
+	if err := config.DB.Save(&existing).Error; err != nil {
 		return nil, err
 	}
-	return &dbCred, nil
+
+	return &existing, nil
 }
 
 func SaveWebAuthnSession(session *webauthn.SessionData, username string) (string, error) {

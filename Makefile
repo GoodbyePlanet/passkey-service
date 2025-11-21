@@ -29,7 +29,7 @@ run: build
 # Docker targets
 # -------------------------------
 docker-build:
-	$(DOCKER_COMPOSE) build
+	$(DOCKER_COMPOSE) build --no-cache
 
 up:
 	$(DOCKER_COMPOSE) up
@@ -41,7 +41,7 @@ down:
 	$(DOCKER_COMPOSE) down
 
 logs:
-	$(DOCKER_COMPOSE) logs -f api
+	$(DOCKER_COMPOSE) logs -f passkeys-service
 
 db:
 	docker exec -it passkey_db psql -U postgres -d passkey_db

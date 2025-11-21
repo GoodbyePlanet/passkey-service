@@ -45,7 +45,7 @@ make run
 ```
 
 
-The API will start on http://localhost:8080.
+The API will start on http://localhost:8085.
 
 Alternatively, run everything with Docker:
 

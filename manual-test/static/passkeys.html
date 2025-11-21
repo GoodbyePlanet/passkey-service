@@ -146,7 +146,7 @@
         log("📡 Starting registration...");
 
         try {
-            const begin = await fetch("http://localhost:8080/api/register/begin", {
+            const begin = await fetch("http://localhost:8085/api/register/begin", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 credentials: "include",
@@ -185,7 +185,7 @@
                 }
             };
 
-            const finish = await fetch("http://localhost:8080/api/register/finish", {
+            const finish = await fetch(`http://localhost:8085/api/register/finish?passkeyName=${username}`, {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 credentials: "include",
@@ -217,7 +217,7 @@
         log("📡 Starting authentication...");
 
         try {
-            const begin = await fetch("http://localhost:8080/api/authenticate/begin", {
+            const begin = await fetch("http://localhost:8085/api/authenticate/begin", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 credentials: "include",
@@ -267,7 +267,7 @@
                 }
             };
 
-            const finish = await fetch("http://localhost:8080/api/authenticate/finish", {
+            const finish = await fetch("http://localhost:8085/api/authenticate/finish", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 credentials: "include",
