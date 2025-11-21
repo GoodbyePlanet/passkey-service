@@ -102,6 +102,7 @@
 
     <button onclick="registerUser()">Register</button>
     <button onclick="authenticateUser()">Authenticate</button>
+    <button onclick="getRegisteredPasskeys()">Get passkeys</button>
 
     <div id="log"></div>
 </div>
@@ -174,7 +175,8 @@
 
             const cred = await navigator.credentials.create({publicKey});
             log("Credential created");
-
+            // TODO: send authenticatorAttachment
+            // TODO: check auhenticator data and sign count
             const data = {
                 id: cred.id,
                 rawId: bufferToBase64url(cred.rawId),
@@ -284,6 +286,37 @@
         }
     }
 
+    /* ------------------------ GETTING PASSKEYS ------------------------ */
+    async function getRegisteredPasskeys() {
+        const username = document.getElementById("username").value.trim();
+
+        if (!username) {
+            setStatus("error", "Username is required");
+            log("❗ Username is required");
+            return;
+        }
+
+        setStatus("", "");
+        log("📡 Getting registered passkeys...");
+
+        try {
+            const regResponse = await fetch(`http://localhost:8085/api/users/${username}/registered-passkeys`, {
+                method: "GET",
+                headers: {"Content-Type": "application/json"},
+                credentials: "include",
+            }).then(r => r.json()).catch((reason) => {
+                log("Something went wrong: " + reason)
+            });
+
+            log("Registered passkeys received");
+            log(JSON.stringify(regResponse, null, 2));
+            setStatus("success", "Received registered passkeys!");
+        } catch (err) {
+            console.error(err);
+            log("❌ Failed to get registered passkeys: " + err);
+            setStatus("error", "Error getting registered passkeys!");
+        }
+    }
 </script>
 
 </body>
